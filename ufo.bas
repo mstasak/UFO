@@ -3,8 +3,10 @@
 '1.0 initial cut - ship random movements above grass
 '1.01 controller input to steer ship; allow it to fly over entire screen
 '1.02 added "phaser" bolts - basic, flat horizontal, no time decay.  also disabled _delay for max speed
+
 'QB64PE 4.2.0 (4.0+ should work)
-'simulate vehicle flying over rolling terrain
+
+'Simulate vehicle flying over rolling terrain
 
 Option _Explicit
 Dim Shared As Long scr, wid, hgt, shipImage, shipWid, shipHgt, shipBkgImg, groundHgt, yIndex, grassRect, deviceCount
@@ -64,9 +66,11 @@ Sub hidePhasers
     'Dim Shared As Single phaserAngle(10)
     'crude for now - phasers are always angle 0 (straight right) with infinite turns left (until it leaves window)
     'hide by drawing over in background color
-    Dim As Integer i
+    Dim As Integer i, dY
     For i = 1 To nPhasers
-        Line (phaserX(i), phaserY(i))-(phaserX(i) + wid \ 4, phaserY(i)), DarkBlue
+        For dY = -1 To 1
+            Line (phaserX(i), phaserY(i) + dY)-(phaserX(i) + wid \ 4, phaserY(i) + dY), DarkBlue
+        Next dY
     Next i
 End Sub
 
@@ -112,9 +116,11 @@ Sub firePhasers
 End Sub
 
 Sub showPhasers
-    Dim As Integer i
+    Dim As Integer i, dY
     For i = 1 To nPhasers
-        Line (phaserX(i), phaserY(i))-(phaserX(i) + wid \ 4, phaserY(i)), LightYellow
+        For dY = -1 To 1
+            Line (phaserX(i), phaserY(i) + dY)-(phaserX(i) + wid \ 4, phaserY(i) + dY), _IIf(dY, LightYellow, Red)
+        Next dY
     Next i
 End Sub
 
