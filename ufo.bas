@@ -3,7 +3,8 @@
 '1.0 initial cut - ship random movements above grass
 '1.01 controller input to steer ship; allow it to fly over entire screen
 '1.02 added "phaser" bolts - basic, flat horizontal, no time decay.  also disabled _delay for max speed
-
+'1.021 fatter phaser bolts, with red core
+'1.022 Added table of Logitech F310 controller inputs, for PSX and XBox modes
 'QB64PE 4.2.0 (4.0+ should work)
 
 'Simulate vehicle flying over rolling terrain
@@ -176,10 +177,51 @@ Sub moveShip
     Dim dev As Integer
     dev = _DeviceInput
     If dev = 3 Then
-        h = (_Axis(1) + _Axis(6)) / 20
+        h = (_Axis(1) + _Axis(6)) / 20 'update ship movement rate
         v = (_Axis(2) + _Axis(7)) / 20
         If Abs(h) < 0.001 Then h = 0
         If Abs(v) < 0.001 Then v = 0
+
+        '            Logitech F310 Game Controller inputs
+        '
+        ' Mode   Control/PSX Equivalent    Input
+        ' -----  ------------------------  -----------------------------
+        ' PSX    Left Stick (Horizontal)   Axis 1
+        '        Left Stick (Vertical)     Axis 2
+        '        Right Trigger             Axis 3 when <=0
+        '        Left Trigger              Axis 3 when >=0
+        '        Right Stick (Vertical)    Axis 4
+        '        Right Stick (Horizontal)  Axis 5
+        '        DPad (Horizontal)         Axis 6 (digital: -1, 0, or 1)
+        '        DPad (Vertical)           Axis 7 (digital: -1, 0, or 1)
+        '        A/X                       Button 1
+        '        B/O                       Button 2
+        '        X/Square                  Button 3
+        '        Y/Triangle                Button 4
+        '        Left Button               Button 5
+        '        Right Button              Button 6
+        '        Back/Select               Button 7
+        '        Start                     Button 8
+        '        Left Stick Down           Button 9
+        '        Right Stick Down          Button 10
+        ' X-Box  Left Stick (Horizontal)   Axis 1
+        '        Left Stick (Vertical)     Axis 2
+        '        Right Stick (Horizontal)  Axis 3
+        '        Right Stick (Vertical)    Axis 4
+        '        DPad (Horizontal)         Axis 5 (digital: -1, 0, or 1)
+        '        DPad (Vertical)           Axis 6 (digital: -1, 0, or 1)
+        '        X/Square                  Button 1
+        '        A/X                       Button 2
+        '        B/O                       Button 3
+        '        Y/Triangle                Button 4
+        '        Left Button               Button 5
+        '        Right Button              Button 6
+        '        Right Trigger             Button 7
+        '        Left Trigger              Button 8
+        '        Back/Select               Button 9
+        '        Start                     Button 10
+        '        Left Stick Down           Button 11
+        '        Right Stick Down          Button 12
 
         'code to show button and axis states, to id which inputs do what
         'Dim As Integer nButtons, nAxes, i
@@ -188,18 +230,13 @@ Sub moveShip
         'Locate 1, 1
         'Print _Device$(dev)
         'For i = 1 To nButtons
-        '    'xboxmode: 1=x,2=a,3=b,4=y,5=lb,6=rb,7=lt,8=rt,9=back,10=start,11=lstickdown,12=rstickdown
-        '    'psxmode: 1=a/x, 2=b/o, 3=x/sq, 4y/tr=, 5lb=, 6=rb, 7=back/select, 8=start, 9=lstickdown, 10=rstickdown
-
         '    Print "Button "; i; "="; _Button(i); " ";
         'Next i
-        'Print
+        'Print spc(20)
         'For i = 1 To nAxes
-        '    'xboxmode: 1=lstickh, 2=lstickv, 3=rstickh, 4=rstickv, 5=dpadh, 6=dpadv
-        '    'psx mode: 1=lstickh, 2=lstickv, 3=lt(+)rt(-), 4=rstickv, 5=rstickh, 6=dpadh, 7=dpadv
         '    Print "Axis "; i; "="; _Axis(i); " ";
         'Next i
-        'Print
+        'Print spc(20)
 
         '    Print Spc(40);
         '    Locate 2, 1
@@ -223,6 +260,6 @@ Sub moveShip
     shipDY = _Clamp(shipDY - v, -5, 5)
     shipX = _Clamp(shipX + shipDX, shipWid \ 2 + 1, wid - shipWid \ 2 - 1)
     shipY = _Clamp(shipY + shipDY, 0 * hgt \ 2 + shipHgt \ 2 + 1, hgt - shipHgt \ 2 - 1)
-    shipDX = shipDX * 0.97 'friction from the ether slows the ship down
+    shipDX = shipDX * 0.97 'friction from the atmosphere/ether slows the ship down
     shipDY = shipDY * 0.97
 End Sub
