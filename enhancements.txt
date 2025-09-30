@@ -1,0 +1,12 @@
+Possible future changes:
+
+1. UFO drop bombs
+2. Ground units shoot missiles at UFO
+3. Prizes to collect
+4. Targets to shoot
+5. Maintain a score
+6. Statusbar to show score
+7. Hall of Fame(?)
+8. Enemy flyers
+9. Oncoming obstacles - fixed
+10. Oncoming obstacles - moving (windmill? birds?)
