@@ -1,0 +1,1 @@
+Create a separate program to display live controller inputs for creating controller input maps.  Remove this commented code from ufo.bas.
