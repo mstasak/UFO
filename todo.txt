@@ -1,1 +1,3 @@
-Create a separate program to display live controller inputs for creating controller input maps.  Remove this commented code from ufo.bas.
+1. Create a separate program to display live controller inputs for creating controller input maps.  Remove this commented code from ufo.bas.
+
+2. Explore hardware images to enable GPU to do _putimage work for overall speedup.
