@@ -5,48 +5,81 @@
 '1.02 added "phaser" bolts - basic, flat horizontal, no time decay.  also disabled _delay for max speed
 '1.021 fatter phaser bolts, with red core
 '1.022 Added table of Logitech F310 controller inputs, for PSX and XBox modes
+'1.023 Restructured using Types to encapsulate related variables (but not arrays). Moved controller input map to separate text file - IDE was getting sluggish
+
 'QB64PE 4.2.0 (4.0+ should work)
 
 'Simulate vehicle flying over rolling terrain
 
 Option _Explicit
-Dim Shared As Long scr, wid, hgt, shipImage, shipWid, shipHgt, shipBkgImg, groundHgt, yIndex, grassRect, deviceCount
-Dim Shared As Single shipX, shipY, shipDX, shipDY, grassY, grassDY
-Dim Shared As Long nPhasers, phaserX(10), phaserY(10) ', phaserLength(10), phaserTurnsLeft(10), phaserBkgImage(10)
+$Color:32
+
+Type ScreenInfo
+    As Long image, width, height
+End Type
+
+Type ShipInfo
+    As Long sourceImage, backimage, width, height, backgroundImage
+    As Single x, y, dx, dy
+End Type
+
+Type GroundInfo
+    As Long maxY, panBufferImage
+    As Single lastY, dY
+End Type
+
+Type PhaserInfo
+    count As Integer
+End Type
+
+Dim Shared scrn As ScreenInfo
+Dim Shared ship As ShipInfo
+Dim Shared ground As GroundInfo
+Dim Shared phasers As PhaserInfo
+Dim Shared As Long deviceCount
+Dim Shared As Long phaserX(10), phaserY(10) ', phaserLength(10), phaserTurnsLeft(10), phaserBkgImage(10)
 'Dim Shared As Single phaserAngle(10)
 
+'initialization - runtime
 Randomize Timer
+
+'initialization - controller
 deviceCount = _Devices
-scr = _NewImage(1280, 800, 32)
-Screen scr
-wid = _Width
-hgt = _Height
-ReDim Shared As Single grassTops(0 To wid - 1)
-groundHgt = hgt / 2 'between 0 and hgt/2
-Window (0, 0)-(wid - 1, hgt - 1)
-$Color:32
+
+'initialization - screen
+scrn.width = 1280
+scrn.height = 800
+scrn.image = _NewImage(scrn.width, scrn.height, 32)
+Screen scrn.image
+Window (0, 0)-(scrn.width - 1, scrn.height - 1)
 Cls , DarkBlue
 
-shipX = 100
-shipY = hgt * 3 \ 4
-shipDX = 0
-shipDY = 0
-shipImage = _LoadImage("ufo.png")
-shipWid = _Width(shipImage)
-shipHgt = _Height(shipImage)
-shipBkgImg = _NewImage(shipWid, shipHgt, 32)
+'initialization - ground
+ReDim Shared As Single groundTops(0 To scrn.width - 1)
+ground.maxY = scrn.height / 2 'between 0 and hgt/2
+ground.lastY = 0: ground.dY = 0.5 * Rnd
+ground.panBufferImage = _NewImage(scrn.width - 1, scrn.height \ 2, 32)
 
-grassY = 0: grassDY = 0.5 * Rnd
-grassRect = _NewImage(wid - 1, hgt \ 2, 32)
+'initialization - ship
+ship.x = 100
+ship.y = scrn.height * 3 \ 4
+ship.dx = 0
+ship.dy = 0
+ship.sourceImage = _LoadImage("ufo.png")
+ship.width = _Width(ship.sourceImage)
+ship.height = _Height(ship.sourceImage)
+ship.backimage = _NewImage(ship.width, ship.height, 32)
 
+'Main Loop
 Do
     _Limit 60
-    For yIndex = 0 To wid - 1
+    Dim yIndex As Integer
+    For yIndex = 0 To scrn.width - 1
         hideShip
         hidePhasers
         moveShip
         firePhasers
-        moveGround
+        moveGround yIndex
         showPhasers
         showShip
         _Display
@@ -59,18 +92,18 @@ Do
     Next yIndex
 Loop
 Screen 0
-_FreeImage grassRect: _FreeImage scr: _FreeImage shipImage: _FreeImage shipBkgImg
+_FreeImage ground.panBufferImage: _FreeImage scrn.image: _FreeImage ship.sourceImage: _FreeImage ship.backimage
 System
 
 Sub hidePhasers
-    'Dim Shared As Long nPhasers, phaserX(10), phaserY(10), phaserLength(10), phaserTurnsLeft(10), phaserBkgImage(10)
+    'Dim Shared As Long phasers.count, phaserX(10), phaserY(10), phaserLength(10), phaserTurnsLeft(10), phaserBkgImage(10)
     'Dim Shared As Single phaserAngle(10)
     'crude for now - phasers are always angle 0 (straight right) with infinite turns left (until it leaves window)
     'hide by drawing over in background color
     Dim As Integer i, dY
-    For i = 1 To nPhasers
+    For i = 1 To phasers.count
         For dY = -1 To 1
-            Line (phaserX(i), phaserY(i) + dY)-(phaserX(i) + wid \ 4, phaserY(i) + dY), DarkBlue
+            Line (phaserX(i), phaserY(i) + dY)-(phaserX(i) + scrn.width \ 4, phaserY(i) + dY), DarkBlue
         Next dY
     Next i
 End Sub
@@ -100,16 +133,16 @@ Sub firePhasers
     '    Next j
     'End If
     i = 1
-    Do While i <= nPhasers
+    Do While i <= phasers.count
         phaserX(i) = phaserX(i) + 5
-        If phaserX(i) >= wid Then
+        If phaserX(i) >= scrn.width Then
             'remove phaser(i) from list
-            For j = i To nPhasers - 1
+            For j = i To phasers.count - 1
                 phaserX(j) = phaserX(j + 1)
                 phaserY(j) = phaserY(j + 1)
             Next j
-            nPhasers = nPhasers - 1
-            'Locate 5, 1: Print "Phaser bolts = "; nPhasers
+            phasers.count = phasers.count - 1
+            'Locate 5, 1: Print "Phaser bolts = "; phasers.count
         Else
             i = i + 1
         End If
@@ -118,25 +151,25 @@ End Sub
 
 Sub showPhasers
     Dim As Integer i, dY
-    For i = 1 To nPhasers
+    For i = 1 To phasers.count
         For dY = -1 To 1
-            Line (phaserX(i), phaserY(i) + dY)-(phaserX(i) + wid \ 4, phaserY(i) + dY), _IIf(dY, LightYellow, Red)
+            Line (phaserX(i), phaserY(i) + dY)-(phaserX(i) + scrn.width \ 4, phaserY(i) + dY), _IIf(dY, LightYellow, Red)
         Next dY
     Next i
 End Sub
 
-Sub moveGround
+Sub moveGround (yIndex As Long)
     Dim As Long grassX, j, grassPlotY
-    grassTops(yIndex) = grassY
-    grassY = _Clamp(grassY + grassDY, 0, 0.5 * hgt)
-    grassDY = _Clamp(grassDY - 0.1 + 0.2 * Rnd, -.5, .5)
-    If grassY < 10 Then grassDY = grassDY + 0.005
-    If grassY > groundHgt - 10 Then grassDY = grassDY - 0.005
-    grassX = wid - 1
+    groundTops(yIndex) = ground.lastY
+    ground.lastY = _Clamp(ground.lastY + ground.dY, 0, ground.maxY)
+    ground.dY = _Clamp(ground.dY - 0.1 + 0.2 * Rnd, -.5, .5)
+    If ground.lastY < 10 Then ground.dY = ground.dY + 0.005
+    If ground.lastY > ground.maxY - 10 Then ground.dY = ground.dY - 0.005
+    grassX = scrn.width - 1
     'scroll bottom half of screen left 1 pixel
-    _PutImage (0, 0)-(wid - 2, hgt \ 2 - 1), scr, grassRect, (1, 0)-(wid - 1, hgt \ 2 - 1)
-    _PutImage (0, 0)-(wid - 2, hgt \ 2 - 1), grassRect, scr, (0, 0)-(wid - 2, hgt \ 2 - 1)
-    grassPlotY = grassTops((grassX + yIndex) Mod wid)
+    _PutImage (0, 0)-(scrn.width - 2, scrn.height \ 2 - 1), scrn.image, ground.panBufferImage, (1, 0)-(scrn.width - 1, scrn.height \ 2 - 1)
+    _PutImage (0, 0)-(scrn.width - 2, scrn.height \ 2 - 1), ground.panBufferImage, scrn.image, (0, 0)-(scrn.width - 2, scrn.height \ 2 - 1)
+    grassPlotY = groundTops((grassX + yIndex) Mod scrn.width)
     Dim pColor As Long
     If grassPlotY > 0 Then
         pColor = DarkGreen '_RGB(10, 128, 25)
@@ -144,7 +177,7 @@ Sub moveGround
         pColor = Blue
     End If
     'PSet (grassx, grassplotY), pColor 'this draws a horizon line but does not fill in
-    Line (grassX, hgt \ 2 - 1)-(grassX, grassPlotY - 5), DarkBlue 'erase remnants of prior rightmost pixel column
+    Line (grassX, scrn.height \ 2 - 1)-(grassX, grassPlotY - 5), DarkBlue 'erase remnants of prior rightmost pixel column
     Line -(grassX, 0), DarkGreen 'erase remnants of prior rightmost pixel column
     'Line -(grassx, 0), pColor
     For j = 1 To grassPlotY \ 3
@@ -156,12 +189,12 @@ Sub moveGround
 End Sub
 
 Sub showShip
-    _PutImage , scr, shipBkgImg, (shipX - shipWid \ 2, shipY + shipHgt \ 2)-(shipX - shipWid \ 2 + shipWid - 1, shipY + shipHgt \ 2 - (shipHgt - 1))
-    _PutImage (shipX - shipWid \ 2, shipY + shipHgt \ 2)-(shipX - shipWid \ 2 + shipWid - 1, shipY + shipHgt \ 2 - (shipHgt - 1)), shipImage, scr, (1, 1)-(shipWid, shipHgt)
+    _PutImage , scrn.image, ship.backimage, (ship.x - ship.width \ 2, ship.y + ship.height \ 2)-(ship.x - ship.width \ 2 + ship.width - 1, ship.y + ship.height \ 2 - (ship.height - 1))
+    _PutImage (ship.x - ship.width \ 2, ship.y + ship.height \ 2)-(ship.x - ship.width \ 2 + ship.width - 1, ship.y + ship.height \ 2 - (ship.height - 1)), ship.sourceImage, scrn.image, (1, 1)-(ship.width, ship.height)
 End Sub
 
 Sub hideShip
-    _PutImage (shipX - shipWid \ 2, shipY + shipHgt \ 2)-(shipX - shipWid \ 2 + shipWid - 1, shipY + shipHgt \ 2 - (shipHgt - 1)), shipBkgImg, scr
+    _PutImage (ship.x - ship.width \ 2, ship.y + ship.height \ 2)-(ship.x - ship.width \ 2 + ship.width - 1, ship.y + ship.height \ 2 - (ship.height - 1)), ship.backimage, scrn.image
 End Sub
 
 Sub moveShip
@@ -182,46 +215,6 @@ Sub moveShip
         If Abs(h) < 0.001 Then h = 0
         If Abs(v) < 0.001 Then v = 0
 
-        '            Logitech F310 Game Controller inputs
-        '
-        ' Mode   Control/PSX Equivalent    Input
-        ' -----  ------------------------  -----------------------------
-        ' PSX    Left Stick (Horizontal)   Axis 1
-        '        Left Stick (Vertical)     Axis 2
-        '        Right Trigger             Axis 3 when <=0
-        '        Left Trigger              Axis 3 when >=0
-        '        Right Stick (Vertical)    Axis 4
-        '        Right Stick (Horizontal)  Axis 5
-        '        DPad (Horizontal)         Axis 6 (digital: -1, 0, or 1)
-        '        DPad (Vertical)           Axis 7 (digital: -1, 0, or 1)
-        '        A/X                       Button 1
-        '        B/O                       Button 2
-        '        X/Square                  Button 3
-        '        Y/Triangle                Button 4
-        '        Left Button               Button 5
-        '        Right Button              Button 6
-        '        Back/Select               Button 7
-        '        Start                     Button 8
-        '        Left Stick Down           Button 9
-        '        Right Stick Down          Button 10
-        ' X-Box  Left Stick (Horizontal)   Axis 1
-        '        Left Stick (Vertical)     Axis 2
-        '        Right Stick (Horizontal)  Axis 3
-        '        Right Stick (Vertical)    Axis 4
-        '        DPad (Horizontal)         Axis 5 (digital: -1, 0, or 1)
-        '        DPad (Vertical)           Axis 6 (digital: -1, 0, or 1)
-        '        X/Square                  Button 1
-        '        A/X                       Button 2
-        '        B/O                       Button 3
-        '        Y/Triangle                Button 4
-        '        Left Button               Button 5
-        '        Right Button              Button 6
-        '        Right Trigger             Button 7
-        '        Left Trigger              Button 8
-        '        Back/Select               Button 9
-        '        Start                     Button 10
-        '        Left Stick Down           Button 11
-        '        Right Stick Down          Button 12
 
         'code to show button and axis states, to id which inputs do what
         'Dim As Integer nButtons, nAxes, i
@@ -246,20 +239,20 @@ Sub moveShip
         '        End If
         '    Next j
 
-        If nPhasers < 10 Then
+        If phasers.count < 10 Then
             If ((_ButtonChange(6) = -1) And (_Button(6) = -1)) Or ((_ButtonChange(1) = -1) And (_Button(1) = -1)) Then ' Or _ButtonChange(2) = -1 Then
-                nPhasers = nPhasers + 1
-                'Locate 5, 1: Print "Phaser bolts = "; nPhasers
-                phaserX(nPhasers) = shipX + shipWid \ 2 - 5
-                phaserY(nPhasers) = shipY - 12 'looks better coming from edge of suacer than vertical center
+                phasers.count = phasers.count + 1
+                'Locate 5, 1: Print "Phaser bolts = "; phasers.count
+                phaserX(phasers.count) = ship.x + ship.width \ 2 - 5
+                phaserY(phasers.count) = ship.y - 12 'looks better coming from edge of saucer than vertical center
             End If
         End If
 
     End If
-    shipDX = _Clamp(shipDX + h, -5, 5) 'max speed 5 pixels/frame
-    shipDY = _Clamp(shipDY - v, -5, 5)
-    shipX = _Clamp(shipX + shipDX, shipWid \ 2 + 1, wid - shipWid \ 2 - 1)
-    shipY = _Clamp(shipY + shipDY, 0 * hgt \ 2 + shipHgt \ 2 + 1, hgt - shipHgt \ 2 - 1)
-    shipDX = shipDX * 0.97 'friction from the atmosphere/ether slows the ship down
-    shipDY = shipDY * 0.97
+    ship.dx = _Clamp(ship.dx + h, -5, 5) 'max speed 5 pixels/frame
+    ship.dy = _Clamp(ship.dy - v, -5, 5)
+    ship.x = _Clamp(ship.x + ship.dx, ship.width \ 2 + 1, scrn.width - ship.width \ 2 - 1)
+    ship.y = _Clamp(ship.y + ship.dy, 0 * scrn.height \ 2 + ship.height \ 2 + 1, scrn.height - ship.height \ 2 - 1)
+    ship.dx = ship.dx * 0.97 'friction from the atmosphere/ether slows the ship down
+    ship.dy = ship.dy * 0.97
 End Sub
