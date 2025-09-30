@@ -1,0 +1,41 @@
+           Logitech F310 Game Controller Inputs
+
+Mode   Control/PSX Equivalent    Input
+-----  ------------------------  -----------------------------
+PSX    Left Stick (Horizontal)   Axis 1
+       Left Stick (Vertical)     Axis 2
+       Right Trigger             Axis 3 when <=0
+       Left Trigger              Axis 3 when >=0
+       Right Stick (Vertical)    Axis 4
+       Right Stick (Horizontal)  Axis 5
+       DPad (Horizontal)         Axis 6 (digital: -1, 0, or 1)
+       DPad (Vertical)           Axis 7 (digital: -1, 0, or 1)
+       A/X                       Button 1
+       B/O                       Button 2
+       X/Square                  Button 3
+       Y/Triangle                Button 4
+       Left Button               Button 5
+       Right Button              Button 6
+       Back/Select               Button 7
+       Start                     Button 8
+       Left Stick Down           Button 9
+       Right Stick Down          Button 10
+
+X-Box  Left Stick (Horizontal)   Axis 1
+       Left Stick (Vertical)     Axis 2
+       Right Stick (Horizontal)  Axis 3
+       Right Stick (Vertical)    Axis 4
+       DPad (Horizontal)         Axis 5 (digital: -1, 0, or 1)
+       DPad (Vertical)           Axis 6 (digital: -1, 0, or 1)
+       X/Square                  Button 1
+       A/X                       Button 2
+       B/O                       Button 3
+       Y/Triangle                Button 4
+       Left Button               Button 5
+       Right Button              Button 6
+       Right Trigger             Button 7
+       Left Trigger              Button 8
+       Back/Select               Button 9
+       Start                     Button 10
+       Left Stick Down           Button 11
+       Right Stick Down          Button 12
